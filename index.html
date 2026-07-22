@@ -132,7 +132,7 @@
 </head>
 <body>
 <main class="app"><div class="shell">
-  <header class="top"><div><div class="eyebrow">Panel operativo</div><h1 class="title">Rent Roll · Inventario</h1><p class="subtitle">Estado de inventario y proyección de rentas 2026</p></div><div class="top-right"><span class="pulse"></span><span id="statusText">Rent Roll · 182 locales cargados</span></div></header>
+  <header class="top"><div><div class="eyebrow">Panel operativo</div><h1 class="title">Rent Roll · Inventario</h1><p class="subtitle">Estado de inventario y proyección de rentas 2026</p></div><div class="top-right"><span class="pulse"></span><span id="statusText">Rent Roll · 182 locales cargados</span><button id="refreshBtn" type="button" title="Forzar lectura del Excel ahora" style="border:0;background:transparent;color:var(--blue-700);font-weight:800;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 4px">⟳</button></div></header>
   <section class="filterbar">
     <div class="filterbar-left"><span class="filterbar-label"><span class="ic">▤</span>Alcance</span><div class="select-wrap"><select id="scopeSelect"><option value="all">Todos los alcances</option><option value="Proyecto Comercial">Proyecto Comercial</option><option value="Shell">Shell</option><option value="Breña">Breña</option></select></div></div>
     <span class="file-meta" id="scopeInfo"></span>
@@ -181,7 +181,7 @@
   function renderCollections(){const field=key(['confirmacionDeDeposito','confirmacion deposito'])||'confirmacionDeDeposito',g=group(field),labels=['Confirmado','Sin confirmar','Atrazo'],colors=['#1a4fd6','#93a1ba','#d9820a'];
     draw('confirmationChart','bar',{labels,datasets:[{data:labels.map(x=>g[x]||0),backgroundColor:colors,borderRadius:6,barThickness:30}]},{indexAxis:'y',scales:{x:{beginAtZero:true},y:{grid:{display:false}}},plugins:{legend:{display:false}}});
     $('confirmed').textContent=g['Confirmado']||0;$('late').textContent=g['Atrazo']||0}
-  function renderServicios(){const cfeK=key(['cfe']),aguaK=key(['aguaYDrenaje','agua y drenaje','agua_drenaje']);const labels=['En trámite','Ingresado','Servicios listos'],colors=['#d9820a','#1a4fd6','#15803d'];const gCfe=cfeK?group(cfeK):{},gAgua=aguaK?group(aguaK):{};$('cfeCount').textContent=`${rows.length} locales`;$('aguaCount').textContent=`${rows.length} locales`;draw('cfeChart','bar',{labels,datasets:[{data:labels.map(x=>gCfe[x]||0),backgroundColor:colors,borderRadius:6,barThickness:26}]},{indexAxis:'y',scales:{x:{beginAtZero:true},y:{grid:{display:false}}},plugins:{legend:{display:false}}});draw('aguaChart','bar',{labels,datasets:[{data:labels.map(x=>gAgua[x]||0),backgroundColor:colors,borderRadius:6,barThickness:26}]},{indexAxis:'y',scales:{x:{beginAtZero:true},y:{grid:{display:false}}},plugins:{legend:{display:false}}})}
+  function renderServicios(){const cfeK=key(['cfe']),aguaK=key(['aguaYDrenaje','agua y drenaje','agua_drenaje']);const labels=['En trámite','Ingresado','Servicios listos'],normLabels=labels.map(norm),colors=['#d9820a','#1a4fd6','#15803d'];const counts=fk=>{const c=[0,0,0];if(!fk)return c;rows.forEach(r=>{const i=normLabels.indexOf(norm(r[fk]));if(i>=0)c[i]++});return c};const cfeCounts=counts(cfeK),aguaCounts=counts(aguaK);$('cfeCount').textContent=`${rows.length} locales`;$('aguaCount').textContent=`${rows.length} locales`;draw('cfeChart','bar',{labels,datasets:[{data:cfeCounts,backgroundColor:colors,borderRadius:6,barThickness:26}]},{indexAxis:'y',scales:{x:{beginAtZero:true},y:{grid:{display:false}}},plugins:{legend:{display:false}}});draw('aguaChart','bar',{labels,datasets:[{data:aguaCounts,backgroundColor:colors,borderRadius:6,barThickness:26}]},{indexAxis:'y',scales:{x:{beginAtZero:true},y:{grid:{display:false}}},plugins:{legend:{display:false}}})}
   function parseISO(v){if(!v)return null;if(v instanceof Date){if(isNaN(v.getTime()))return null;return new Date(v.getUTCFullYear(),v.getUTCMonth(),v.getUTCDate())}const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return null;return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]))}
   function renderTable(){const start=key(['inicioPagoRenta','inicio pago']),status=key(['confirmacionDeDeposito','confirmacion deposito']),month=key(['mes','renta mensual']),nameK=key(['name','local']),marcaK=key(['marca']),proyectoK=key(['proyecto']);const now=new Date(),curYear=now.getFullYear(),curMonth=now.getMonth();const shown=rows.filter(r=>{if(!start)return false;const d=parseISO(r[start]);return d&&d.getFullYear()===curYear&&d.getMonth()===curMonth});const monthName=now.toLocaleDateString('es-MX',{month:'long',year:'numeric'});$('paymentsSubtitle').textContent=`Locales con inicio de pago en ${monthName}`;$('paymentsCount').textContent=`${shown.length} registros`;const badge=v=>{const c=v==='Confirmado'?'blue':v==='Atrazo'?'amber':v==='Sin confirmar'?'slate':'red';return `<span class="badge ${c}">${v||'Sin confirmar'}</span>`};$('paymentsBody').innerHTML=shown.length?shown.map(r=>`<tr><td><b>${(nameK?r[nameK]:null)||'-'}</b></td><td>${(marcaK?r[marcaK]:null)||'-'}</td><td>${(proyectoK?r[proyectoK]:null)||'-'}</td><td>${badge(r[status])}</td><td>${parseISO(r[start])?parseISO(r[start]).toLocaleDateString('es-MX'):'-'}</td><td>${money(r[month])}</td></tr>`).join(''):`<tr><td colspan="6" class="notice">No hay locales con inicio de pago en ${monthName}.</td></tr>`}
   function draw(id,type,data,opts={}){if(charts[id])charts[id].destroy();const base={plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#eef2f9'}}}};const merged={responsive:true,maintainAspectRatio:false,...opts,plugins:{...base.plugins,...(opts.plugins||{})},scales:{...base.scales,...(opts.scales||{}),x:{...base.scales.x,...((opts.scales&&opts.scales.x)||{})},y:{...base.scales.y,...((opts.scales&&opts.scales.y)||{})}}};charts[id]=new Chart($(id),{type,data,options:merged})}
@@ -195,7 +195,7 @@
   let liveDataLoaded=false;
   async function loadExcelData(silent){
     try{
-      const res=await fetch(EXCEL_URL,{cache:'no-store'});
+      const res=await fetch(EXCEL_URL+'?t='+Date.now(),{cache:'no-store'});
       if(!res.ok)throw new Error('HTTP '+res.status);
       const buf=await res.arrayBuffer();
       const wb=XLSX.read(buf,{type:'array',cellDates:true});
@@ -204,16 +204,19 @@
       if(parsed.length){
         rentRollData=parsed;
         liveDataLoaded=true;
-        $('statusText').textContent=`Rent Roll · ${rentRollData.length} locales · Excel en vivo`;
+        const hora=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        $('statusText').textContent=`Rent Roll · ${rentRollData.length} locales · Excel en vivo · actualizado ${hora}`;
         $('fileInfo').textContent=`${rentRollData.length} registros`;
         applyScope();
       }
     }catch(err){
-      if(!liveDataLoaded)$('statusText').textContent=`Rent Roll · ${rentRollData.length} locales · datos de referencia`;
+      if(!liveDataLoaded)$('statusText').textContent=`Rent Roll · ${rentRollData.length} locales · datos de referencia (no se pudo leer el Excel en vivo)`;
     }
   }
   loadExcelData();
   setInterval(()=>loadExcelData(true),60000);
+  const refreshBtn=$('refreshBtn');
+  if(refreshBtn)refreshBtn.onclick=()=>loadExcelData();
 </script>
 </body>
 </html>
